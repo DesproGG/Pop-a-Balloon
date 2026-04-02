@@ -1,0 +1,256 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+_G.AutoWaveClicker = _G.AutoWaveClicker or {}
+if _G.AutoWaveClicker.Stop then _G.AutoWaveClicker.Stop() end
+if _G.AutoWaveClicker.UI and _G.AutoWaveClicker.UI.Parent then _G.AutoWaveClicker.UI:Destroy() end
+
+local Events = ReplicatedStorage:FindFirstChild("Events")
+if not Events then error("Events folder not found") end
+local ToggleWaveState = Events:FindFirstChild("ToggleWaveState")
+local EquipLastWeapon = Events:FindFirstChild("EquipLastWeaponRequest")
+if not ToggleWaveState then error("ToggleWaveState not found") end
+
+local UI = Instance.new("ScreenGui")
+UI.Name = "AutoWaveClickerUI"
+UI.ResetOnSpawn = false
+UI.Parent = PlayerGui
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Size = UDim2.new(0, 280, 0, 190)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -95)
+MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
+MainFrame.BackgroundTransparency = 0.15
+MainFrame.BorderSizePixel = 0
+MainFrame.ClipsDescendants = true
+MainFrame.Active = true
+MainFrame.Draggable = false
+MainFrame.Parent = UI
+
+local Corner = Instance.new("UICorner")
+Corner.CornerRadius = UDim.new(0, 12)
+Corner.Parent = MainFrame
+
+local DragBar = Instance.new("Frame")
+DragBar.Size = UDim2.new(1, 0, 0, 30)
+DragBar.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+DragBar.BackgroundTransparency = 0
+DragBar.BorderSizePixel = 0
+DragBar.Parent = MainFrame
+
+local DragCorner = Instance.new("UICorner")
+DragCorner.CornerRadius = UDim.new(0, 12)
+DragCorner.Parent = DragBar
+
+local Title = Instance.new("TextLabel")
+Title.Size = UDim2.new(1, 0, 1, 0)
+Title.BackgroundTransparency = 1
+Title.Text = "🔄 Auto Wave (Start/Stop)"
+Title.TextColor3 = Color3.fromRGB(255, 255, 255)
+Title.Font = Enum.Font.GothamBold
+Title.TextSize = 15
+Title.TextXAlignment = Enum.TextXAlignment.Center
+Title.Parent = DragBar
+
+local StatusLabel = Instance.new("TextLabel")
+StatusLabel.Size = UDim2.new(1, -20, 0, 28)
+StatusLabel.Position = UDim2.new(0, 10, 0, 40)
+StatusLabel.BackgroundTransparency = 1
+StatusLabel.Text = "Status: Idle"
+StatusLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+StatusLabel.Font = Enum.Font.GothamBold
+StatusLabel.TextSize = 14
+StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
+StatusLabel.TextWrapped = true
+StatusLabel.Parent = MainFrame
+
+local WaveLabel = Instance.new("TextLabel")
+WaveLabel.Size = UDim2.new(0, 100, 0, 25)
+WaveLabel.Position = UDim2.new(0, 10, 0, 75)
+WaveLabel.BackgroundTransparency = 1
+WaveLabel.Text = "Stop Wave at:"
+WaveLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
+WaveLabel.Font = Enum.Font.GothamBold
+WaveLabel.TextSize = 14
+WaveLabel.TextXAlignment = Enum.TextXAlignment.Left
+WaveLabel.Parent = MainFrame
+
+local WaveInput = Instance.new("TextBox")
+WaveInput.Size = UDim2.new(0, 80, 0, 28)
+WaveInput.Position = UDim2.new(0, 120, 0, 73)
+WaveInput.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
+WaveInput.Text = "221"
+WaveInput.TextColor3 = Color3.fromRGB(255, 255, 255)
+WaveInput.Font = Enum.Font.GothamBold
+WaveInput.TextSize = 14
+WaveInput.TextXAlignment = Enum.TextXAlignment.Center
+WaveInput.BorderSizePixel = 0
+WaveInput.Parent = MainFrame
+
+local WaveInputCorner = Instance.new("UICorner")
+WaveInputCorner.CornerRadius = UDim.new(0, 6)
+WaveInputCorner.Parent = WaveInput
+
+local WaveInputStroke = Instance.new("UIStroke")
+WaveInputStroke.Color = Color3.fromRGB(255, 255, 255)
+WaveInputStroke.Thickness = 1.5
+WaveInputStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+WaveInputStroke.Parent = WaveInput
+
+local ToggleButton = Instance.new("TextButton")
+ToggleButton.Size = UDim2.new(0, 140, 0, 32)
+ToggleButton.Position = UDim2.new(0.5, -70, 1, -50)
+ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+ToggleButton.Text = "ACTIVATE: OFF"
+ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+ToggleButton.Font = Enum.Font.GothamBold
+ToggleButton.TextSize = 14
+ToggleButton.BorderSizePixel = 0
+ToggleButton.Parent = MainFrame
+
+local ButtonCorner = Instance.new("UICorner")
+ButtonCorner.CornerRadius = UDim.new(0, 8)
+ButtonCorner.Parent = ToggleButton
+
+local dragging = false
+local dragStart, startPos
+
+DragBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+local active = false
+local monitorConnection = nil
+local canDetect = true
+
+local function getWaveTextLabel()
+    local hud = PlayerGui:FindFirstChild("HUD")
+    if not hud then return nil end
+    local top = hud:FindFirstChild("Top")
+    if not top then return nil end
+    local waveBar = top:FindFirstChild("WaveBar")
+    if not waveBar then return nil end
+    return waveBar:FindFirstChild("Text")
+end
+
+local function getWaveButtonText()
+    local hud = PlayerGui:FindFirstChild("HUD")
+    if not hud then return nil end
+    local top = hud:FindFirstChild("Top")
+    if not top then return nil end
+    local buttons = top:FindFirstChild("Buttons")
+    if not buttons then return nil end
+    local waveButton = buttons:FindFirstChild("WaveButton")
+    if waveButton then
+        local textLabel = waveButton:FindFirstChild("Text")
+        if textLabel then return textLabel.Text end
+    end
+    return nil
+end
+
+local function getTargetWaveNumber()
+    local num = tonumber(WaveInput.Text)
+    if num and num >= 0 then
+        return num
+    else
+        return 221
+    end
+end
+
+local function singleClick()
+    if EquipLastWeapon then EquipLastWeapon:FireServer() end
+    ToggleWaveState:FireServer()
+end
+
+local function doubleClick()
+    if EquipLastWeapon then EquipLastWeapon:FireServer() end
+    ToggleWaveState:FireServer()
+    task.wait(0.1)
+    if EquipLastWeapon then EquipLastWeapon:FireServer() end
+    ToggleWaveState:FireServer()
+end
+
+local function startMonitoring()
+    if monitorConnection then monitorConnection:Disconnect() end
+    canDetect = true
+    local targetNum = getTargetWaveNumber()
+    StatusLabel.Text = "Status: Monitoring for 'Wave " .. targetNum .. "'"
+    
+    local buttonText = getWaveButtonText()
+    if buttonText == "Fight" then
+        StatusLabel.Text = "Status: Starting wave (Fight detected)"
+        singleClick()
+    end
+    
+    monitorConnection = RunService.Heartbeat:Connect(function()
+        if not active then return end
+        local waveTextLabel = getWaveTextLabel()
+        if not waveTextLabel then
+            StatusLabel.Text = "Status: HUD not found"
+            return
+        end
+        local currentText = waveTextLabel.Text
+        local targetNum = getTargetWaveNumber()
+        local targetPattern = "Wave " .. targetNum
+        if currentText == targetPattern and canDetect then
+            StatusLabel.Text = "Status: Wave " .. targetNum .. " detected! Double clicking..."
+            canDetect = false
+            doubleClick()
+            task.wait(1)
+            canDetect = true
+            StatusLabel.Text = "Status: Monitoring for 'Wave " .. targetNum .. "'"
+        end
+    end)
+end
+
+local function stopMonitoring()
+    if monitorConnection then
+        monitorConnection:Disconnect()
+        monitorConnection = nil
+    end
+    canDetect = true
+    StatusLabel.Text = "Status: Idle"
+end
+
+ToggleButton.MouseButton1Click:Connect(function()
+    active = not active
+    if active then
+        ToggleButton.Text = "ACTIVATE: ON"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        startMonitoring()
+    else
+        ToggleButton.Text = "ACTIVATE: OFF"
+        ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+        stopMonitoring()
+    end
+end)
+
+_G.AutoWaveClicker.Stop = function()
+    stopMonitoring()
+    if UI and UI.Parent then UI:Destroy() end
+    _G.AutoWaveClicker.UI = nil
+    _G.AutoWaveClicker.Stop = nil
+end
+
+_G.AutoWaveClicker.UI = UI
