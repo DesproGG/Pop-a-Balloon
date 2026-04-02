@@ -18,6 +18,7 @@ if not ToggleWaveState then error("ToggleWaveState not found") end
 local UI = Instance.new("ScreenGui")
 UI.Name = "AutoWaveClickerUI"
 UI.ResetOnSpawn = false
+UI.DisplayOrder = 999
 UI.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
@@ -29,6 +30,7 @@ MainFrame.BorderSizePixel = 0
 MainFrame.ClipsDescendants = true
 MainFrame.Active = true
 MainFrame.Draggable = false
+MainFrame.ZIndex = 999
 MainFrame.Parent = UI
 
 local Corner = Instance.new("UICorner")
@@ -40,6 +42,7 @@ DragBar.Size = UDim2.new(1, 0, 0, 30)
 DragBar.BackgroundColor3 = Color3.fromRGB(45, 45, 60)
 DragBar.BackgroundTransparency = 0
 DragBar.BorderSizePixel = 0
+DragBar.ZIndex = 999
 DragBar.Parent = MainFrame
 
 local DragCorner = Instance.new("UICorner")
@@ -54,6 +57,7 @@ Title.TextColor3 = Color3.fromRGB(255, 255, 255)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 15
 Title.TextXAlignment = Enum.TextXAlignment.Center
+Title.ZIndex = 999
 Title.Parent = DragBar
 
 local StatusLabel = Instance.new("TextLabel")
@@ -66,6 +70,7 @@ StatusLabel.Font = Enum.Font.GothamBold
 StatusLabel.TextSize = 14
 StatusLabel.TextXAlignment = Enum.TextXAlignment.Left
 StatusLabel.TextWrapped = true
+StatusLabel.ZIndex = 999
 StatusLabel.Parent = MainFrame
 
 local WaveLabel = Instance.new("TextLabel")
@@ -77,6 +82,7 @@ WaveLabel.TextColor3 = Color3.fromRGB(200, 200, 200)
 WaveLabel.Font = Enum.Font.GothamBold
 WaveLabel.TextSize = 14
 WaveLabel.TextXAlignment = Enum.TextXAlignment.Left
+WaveLabel.ZIndex = 999
 WaveLabel.Parent = MainFrame
 
 local WaveInput = Instance.new("TextBox")
@@ -89,6 +95,7 @@ WaveInput.Font = Enum.Font.GothamBold
 WaveInput.TextSize = 14
 WaveInput.TextXAlignment = Enum.TextXAlignment.Center
 WaveInput.BorderSizePixel = 0
+WaveInput.ZIndex = 999
 WaveInput.Parent = MainFrame
 
 local WaveInputCorner = Instance.new("UICorner")
@@ -110,6 +117,7 @@ ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
 ToggleButton.Font = Enum.Font.GothamBold
 ToggleButton.TextSize = 14
 ToggleButton.BorderSizePixel = 0
+ToggleButton.ZIndex = 999
 ToggleButton.Parent = MainFrame
 
 local ButtonCorner = Instance.new("UICorner")
