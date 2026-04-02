@@ -225,7 +225,7 @@ local function startMonitoring()
             StatusLabel.Text = "Status: Wave " .. targetNum .. " detected! Double clicking..."
             canDetect = false
             doubleClick()
-            task.wait(1)
+            task.wait(0.1)
             canDetect = true
             StatusLabel.Text = "Status: Monitoring for 'Wave " .. targetNum .. "'"
         end
