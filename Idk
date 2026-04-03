@@ -21,9 +21,10 @@ UI.ResetOnSpawn = false
 UI.DisplayOrder = 999
 UI.Parent = PlayerGui
 
+-- Main Frame
 local MainFrame = Instance.new("Frame")
-MainFrame.Size = UDim2.new(0, 280, 0, 190)
-MainFrame.Position = UDim2.new(0.5, -140, 0.5, -95)
+MainFrame.Size = UDim2.new(0, 280, 0, 220)
+MainFrame.Position = UDim2.new(0.5, -140, 0.5, -110)
 MainFrame.BackgroundColor3 = Color3.fromRGB(25, 25, 35)
 MainFrame.BackgroundTransparency = 0.15
 MainFrame.BorderSizePixel = 0
@@ -108,9 +109,27 @@ WaveInputStroke.Thickness = 1.5
 WaveInputStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 WaveInputStroke.Parent = WaveInput
 
+-- Auto Collect Toggle Button
+local AutoCollectButton = Instance.new("TextButton")
+AutoCollectButton.Size = UDim2.new(0, 140, 0, 32)
+AutoCollectButton.Position = UDim2.new(0.5, -70, 0, 135)
+AutoCollectButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+AutoCollectButton.Text = "Auto Collect: OFF"
+AutoCollectButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+AutoCollectButton.Font = Enum.Font.GothamBold
+AutoCollectButton.TextSize = 14
+AutoCollectButton.BorderSizePixel = 0
+AutoCollectButton.ZIndex = 999
+AutoCollectButton.Parent = MainFrame
+
+local AutoCollectCorner = Instance.new("UICorner")
+AutoCollectCorner.CornerRadius = UDim.new(0, 8)
+AutoCollectCorner.Parent = AutoCollectButton
+
+-- Main Toggle Button (Wave)
 local ToggleButton = Instance.new("TextButton")
 ToggleButton.Size = UDim2.new(0, 140, 0, 32)
-ToggleButton.Position = UDim2.new(0.5, -70, 1, -50)
+ToggleButton.Position = UDim2.new(0.5, -70, 0, 175)
 ToggleButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
 ToggleButton.Text = "ACTIVATE: OFF"
 ToggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -124,6 +143,7 @@ local ButtonCorner = Instance.new("UICorner")
 ButtonCorner.CornerRadius = UDim.new(0, 8)
 ButtonCorner.Parent = ToggleButton
 
+-- Dragging logic
 local dragging = false
 local dragStart, startPos
 
@@ -148,6 +168,114 @@ UserInputService.InputEnded:Connect(function(input)
     end
 end)
 
+-- ========== Auto Collect Feature ==========
+local autoCollectActive = false
+local collectLoopConnection = nil
+local collectedParts = {}
+
+local DEBRIS_FOLDER_NAME = "Debris"
+local CURRENCY_NAME = "Currency"
+local COLLECT_RADIUS = 5
+local COLLECT_HEIGHT_OFFSET = 2
+local COLLECT_INTERVAL = 2 -- seconds
+local lastCollectTime = 0
+
+local function teleportCurrencyToPlayer(currencyPart)
+    -- Check if part is still valid
+    if not currencyPart or not currencyPart.Parent then return end
+    if collectedParts[currencyPart] then return end
+    
+    local character = LocalPlayer.Character
+    if not character then return end
+    local rootPart = character:FindFirstChild("HumanoidRootPart")
+    if not rootPart then return end
+
+    -- Mark as collected so it won't be moved again
+    collectedParts[currencyPart] = true
+    
+    -- Clean up tracking when part is destroyed (using Destroying event)
+    local function onDestroy()
+        collectedParts[currencyPart] = nil
+    end
+    
+    -- Use Destroying (fires before Destroyed) or connect to AnchestryChanged
+    if currencyPart then
+        currencyPart.AncestryChanged:Connect(function()
+            if not currencyPart.Parent then
+                collectedParts[currencyPart] = nil
+            end
+        end)
+    end
+
+    local angle = math.random() * 2 * math.pi
+    local distance = math.random(2, COLLECT_RADIUS)
+    local xOffset = math.cos(angle) * distance
+    local zOffset = math.sin(angle) * distance
+    local newPos = rootPart.Position + Vector3.new(xOffset, COLLECT_HEIGHT_OFFSET, zOffset)
+    
+    pcall(function()
+        currencyPart.CFrame = CFrame.new(newPos)
+    end)
+end
+
+local function collectAllCurrencyInDebris()
+    local debris = workspace:FindFirstChild(DEBRIS_FOLDER_NAME)
+    if not debris then return end
+    
+    for _, child in ipairs(debris:GetChildren()) do
+        if child.Name == CURRENCY_NAME and child:IsA("BasePart") then
+            teleportCurrencyToPlayer(child)
+        end
+    end
+end
+
+local function startCollectLoop()
+    if collectLoopConnection then
+        collectLoopConnection:Disconnect()
+        collectLoopConnection = nil
+    end
+    
+    -- Reset tracking when starting fresh
+    collectedParts = {}
+    lastCollectTime = tick()
+    
+    -- Collect immediately
+    collectAllCurrencyInDebris()
+    
+    -- Set up the loop
+    collectLoopConnection = RunService.Heartbeat:Connect(function()
+        if not autoCollectActive then return end
+        
+        local currentTime = tick()
+        if currentTime - lastCollectTime >= COLLECT_INTERVAL then
+            lastCollectTime = currentTime
+            collectAllCurrencyInDebris()
+        end
+    end)
+end
+
+local function stopCollectLoop()
+    if collectLoopConnection then
+        collectLoopConnection:Disconnect()
+        collectLoopConnection = nil
+    end
+end
+
+-- Toggle Auto Collect
+AutoCollectButton.MouseButton1Click:Connect(function()
+    autoCollectActive = not autoCollectActive
+    if autoCollectActive then
+        AutoCollectButton.Text = "Auto Collect: ON"
+        AutoCollectButton.BackgroundColor3 = Color3.fromRGB(0, 150, 0)
+        startCollectLoop()
+    else
+        AutoCollectButton.Text = "Auto Collect: OFF"
+        AutoCollectButton.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+        stopCollectLoop()
+    end
+end)
+
+-- ========== Wave Clicker Logic ==========
 local active = false
 local monitorConnection = nil
 local canDetect = true
@@ -254,8 +382,10 @@ ToggleButton.MouseButton1Click:Connect(function()
     end
 end)
 
+-- Cleanup when script stops
 _G.AutoWaveClicker.Stop = function()
     stopMonitoring()
+    stopCollectLoop()
     if UI and UI.Parent then UI:Destroy() end
     _G.AutoWaveClicker.UI = nil
     _G.AutoWaveClicker.Stop = nil
